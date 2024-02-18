@@ -89,7 +89,7 @@ void LidarSlamDataWidget::update()
 
                 QString curr_Data = QString::number(m_Manager->pose_.position.at(0)) + ";" +
                                     QString::number(m_Manager->pose_.position.at(1)) + ";" +
-                                    QString::number(0.0) + ";" + QString::number(m_Manager->radiation_level_ / 1000);
+                                    QString::number(m_Manager->pose_.position.at(2)) + ";" + QString::number(m_Manager->radiation_level_ / 1000);
 
                 m_Manager->slam_data_.push_back(curr_Data);
                 //   writeCSV(QString::number(m_Manager->pose_.position.at(0)), QString::number(m_Manager->pose_.position.at(1)),
