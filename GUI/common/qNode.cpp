@@ -1,8 +1,8 @@
 /*****************************************************************************
 ** Includes
 *****************************************************************************/
-
-#include <ros/ros.h>
+#include "qNode.h"
+#include "LidarSlamManager.h"
 #include <ros/package.h>
 #include <ros/network.h>
 #include <std_srvs/SetBool.h>
@@ -11,7 +11,12 @@
 #include <nav_msgs/Odometry.h>
 #include <sstream>
 #include "qdebug.h"
-#include "qNode.h"
+
+#include <cv_bridge/cv_bridge.h>
+
+
+
+
 
 /*****************************************************************************
 ** Implementation
@@ -19,6 +24,7 @@
 
 QNode::QNode()
 {
+
 }
 
 QNode::~QNode()
@@ -50,17 +56,17 @@ bool QNode::init()
     n->param("path_topic", path_topic_, std::string("/aft_pgo_path"));
 
     // n->param("cloud_topic", cloud_topic_, std::string("/camera/depth_registered/points"));
-    
+
 
     map_subscriber_ = n->subscribe(map_topic_, 1000, &QNode::map_callback, this);
     pose_subscriber_ = n->subscribe(pose_topic_, 1000, &QNode::pose_callback, this);
     radiation_subscriber_ = n->subscribe(radiation_topic_, 1000, &QNode::radiation_callback, this);
 
+
     color_subscriber_ = it.subscribe(rgb_topic_, 1000, &QNode::color_callback, this);
     depth_subsciber_ = it.subscribe(depth_topic_, 1000, &QNode::depth_callback, this);
     cloud_subscriber_ = n->subscribe(cloud_topic_, 1, &QNode::cloud_callback, this);
     path_subscriber_ = n->subscribe(path_topic_,1,&QNode::path_callback,this);
-    ros_comms_init();
 
     start();
     package_path_ = ros::package::getPath("LidarSLAM");
@@ -86,6 +92,7 @@ void QNode::path_callback(const nav_msgs::PathConstPtr& path){
         Eigen::Vector3d position(&pose.pose.position.x);
         p.push_back({t,position});
     }
+
     Q_EMIT path_update(p);
 }
 
@@ -248,5 +255,11 @@ void QNode::log(const LogLevel &level, const std::string &msg)
     QVariant new_row(QString(logging_model_msg.str().c_str()));
     logging_model.setData(logging_model.index(logging_model.rowCount() - 1), new_row);
     Q_EMIT loggingUpdated(); // used to readjust the scrollbar
+}
+
+void QNode::run() {
+    ros::spin(); //allows to continuously update the data
+    std::cout << "Ros shutdown, proceeding to close the gui." << std::endl;
+    Q_EMIT rosShutdown(); // used to signal the gui for a shutdown (useful to roslaunch)
 }
 

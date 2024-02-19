@@ -17,6 +17,7 @@ void LidarSlamUserModule::showModuleUI(LidarSlamMainView *view, bool visible)
     {
         m_LidarSlamUserWidget = new LidarSlamUserWidget(p_manager);
         connect(m_LidarSlamUserWidget, SIGNAL(start_survey(bool)), p_manager, SLOT(startSurvey(bool)), Qt::DirectConnection);
+
     }
     view->setMainWidget(m_LidarSlamUserWidget);
 

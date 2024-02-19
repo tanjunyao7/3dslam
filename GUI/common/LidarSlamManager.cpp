@@ -1,9 +1,11 @@
 #include "LidarSlamManager.h"
 #include "pcl/io/pcd_io.h"
+#include <QMessageBox>
+#include <QFileDialog>
 
 LidarSlamManager::LidarSlamManager(QObject *parent) : QObject(parent), m_activeModule(nullptr), m_dataMenuVisible(true), radiation_level_(0), load_data_(false), first_start_(true), cld_ptr(new pcl::PointCloud<pcl::PointXYZI>)
 {
-    ros_node_ = new Listener();
+    ros_node_ = new QNode();
     // Connect to ROS
     if (!ros_node_->init())
     {
@@ -12,7 +14,6 @@ LidarSlamManager::LidarSlamManager(QObject *parent) : QObject(parent), m_activeM
     else
     {
         ROS_INFO("ROS INIT");
-        package_path_ = ros_node_->package_path_;
         QObject::connect(ros_node_, SIGNAL(mapUpdated(Map &)), this, SLOT(setMapData(Map &)), Qt::DirectConnection);
         QObject::connect(ros_node_, SIGNAL(poseUpdated(Pose &)), this, SLOT(setPoseData(Pose &)), Qt::DirectConnection);
         QObject::connect(ros_node_, SIGNAL(radiationUpdated(int)), this, SLOT(setRadiationData(int)), Qt::DirectConnection);
@@ -54,7 +55,6 @@ void LidarSlamManager::setActiveModule(int index, bool visible)
     if ((m_modules.count() <= index) || (index < 0))
         return;
 
-    emit busyChanged(true);
 
     if (m_activeModule)
     {
@@ -73,7 +73,6 @@ void LidarSlamManager::setActiveModule(int index, bool visible)
         heads << m_modules.at(i)->moduleTitle();
     }
     setActiveModuleHeads(heads);
-    emit busyChanged(false);
 }
 
 const QStringList &LidarSlamManager::activeModuleHeads() const
@@ -86,55 +85,63 @@ void LidarSlamManager::setActiveModuleHeads(const QStringList &newActiveModuleHe
     if (m_activeModuleHeads == newActiveModuleHeads)
         return;
     m_activeModuleHeads = newActiveModuleHeads;
-    emit activeModuleHeadsChanged();
 }
 
 void LidarSlamManager::startSurvey(bool can_start)
 {
-    can_start_ = can_start;
-    if (can_start_)
+    started = can_start;
+    if (started)
     {
         printf("start survey\n");
+        clearData();
+        load_data_ = false;
+
+        QString log_dir = QString::fromStdString(ros_node_->package_path_) + "/log/";
+        if (!QDir(log_dir).exists()){
+            QDir().mkdir(log_dir);
+        }
+
+        save_dir = log_dir+QString(user_.survey_unit)+"/";
+        if (!QDir(save_dir).exists()){
+            QDir().mkdir(save_dir);
+        }
+
+        setSurveyFile();
+        
         setActiveModule(3, false);
-        slam_data_.clear();
         ros_node_->callStartStopNodes(true);
     }
     else{
         printf("stopped survey\n");
         ros_node_->callStartStopNodes(false);
+        
+        saveResult();
     }
-    Q_EMIT start_survey(can_start_);
+    Q_EMIT enable_buttons(started);
 }
 
 void LidarSlamManager::updatePath(const std::vector<std::pair<double,Eigen::Vector3d>>& path) {
-    path_ = path;
-    Q_EMIT path_update(path);
+    if(started)
+        path_ = path;
+//    Q_EMIT path_update(path);
 }
 
 void LidarSlamManager::updateCloud(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud)
 {
-    cld_ptr = cloud;
-    // Calculate average x, y, z from the cloud data
-    Q_EMIT cloud_update(cloud);
+    if(started)
+        cld_ptr = cloud;
 }
 
 void LidarSlamManager::updatePixmapColor(const QPixmap pix_image)
 {
-    color_image_ = pix_image;
-    Q_EMIT rgb_update(color_image_);
+    if(started)
+        color_image_ = pix_image;
 }
 
 void LidarSlamManager::updatePixmapDepth(const QPixmap pix_image) {
-    depth_image_ = pix_image;
-    Q_EMIT depth_update(depth_image_);
-}
-
-void LidarSlamManager::setLaserData(LaserScan &scan)
-{
-    if (scan.ranges.size() > 0)
-    {
-        scan_data_ = scan;
-    }
+    if(started)
+        depth_image_ = pix_image;
+//    Q_EMIT depth_update(depth_image_);
 }
 
 
@@ -146,7 +153,7 @@ double fRand(double fMin, double fMax)
 
 void LidarSlamManager::setMapData(Map &map)
 {
-    if (map.data.size() > 0)
+    if (started && map.data.size() > 0)
     {
         map_ = map;
         xyz_ = mapToWorld(map_);
@@ -191,17 +198,108 @@ void LidarSlamManager::setMapData(Map &map)
 
 void LidarSlamManager::setRadiationData(int rad_data)
 {
-    std::cout<<"radiation: "<<rad_data<<std::endl;
-    radiation_level_ = rad_data;
+    if(started)
+        radiation_level_ = rad_data;
 }
 
 void LidarSlamManager::setPoseData(Pose &pose)
 {
-    // Update pose
-    pose_ = pose;
+    if(started)
+        pose_ = pose;
 }
 
-std::vector<QPoints> LidarSlamManager::mapToWorld(Map &m)
+
+void LidarSlamManager::setSurveyFile()
+{
+    QString file_name = "data_" + user_.client_id + "_" + user_.building_id + ".csv";
+    QString logFilePath = save_dir + file_name; // "data.csv";
+    std::cout<<logFilePath.toStdString()<<std::endl;
+    survey_file_ = new QFile(logFilePath);
+    survey_file_->open(QIODevice::WriteOnly | QIODevice::Text);
+}
+
+
+void LidarSlamManager::saveResult() {
+    emit saveCloudScreen(save_dir);
+
+    QString occupancy = save_dir + "occupancy_" + user_.client_id + "_" + user_.building_id + ".png";
+    writeCSV(save_dir,occupancy);
+    occupancy_image_ = createImage(map_);
+    // occupancy = image_path + "occupancy_" + user_.client_id + "_" + user_.building_id + ".png";
+    occupancy_image_.save(occupancy);
+
+
+
+    QString image = save_dir + "map_image_" + user_.client_id + "_" + user_.building_id + ".png";
+    map_image_.save(image);
+
+
+
+    pcl::io::savePCDFileBinary(save_dir.toStdString()+"cloud.pcd",*cld_ptr);
+
+
+    QMessageBox msgBox;
+    msgBox.setText(" CSV and MAP Image saved in the following path :\n" + save_dir);
+    msgBox.exec();
+}
+
+void LidarSlamManager::writeCSV(const QString& dir, const QString& occupancy) {
+    if (survey_file_->isOpen())
+    {
+        QTextStream ts(survey_file_);
+
+        ts << "Survey Technician Name : ;" << user_.username << endl;
+        ts << "Project / Client ID : ;" << user_.client_id << endl;
+        ts << "Building ID : ;" << user_.building_id << endl;
+        ts << "Survey Unit # : ;" << user_.survey_unit << endl;
+        ts << "Instrument Info : ;" << user_.instrument << endl;
+        ts << "Probe : ;" << user_.probe << endl;
+        ts << "Radiation Type : ;" << user_.radiation_type << endl;
+        ts << "Additional Comments and Information About Survey : ;" << user_.comment << endl;
+        ts << endl;
+        ts << "Occupancy map : ;" << occupancy << endl;
+        ts << "Resolution : ;" << map_.resolution << endl;
+        ts << "Position : ;" << map_.position_x << " " << map_.position_y << endl;
+        ts << endl;
+        ts << "X ;"
+           << "Y ;"
+           << "Z ;"
+           << "RADIATION ;" << endl;
+
+        for (auto &d : slam_data_)
+        {
+            ts << d << endl;
+        }
+
+        survey_file_->close();
+        delete survey_file_;
+        survey_file_ = nullptr;
+    }
+    else{
+        std::cout<<"wtf?\n"<<std::endl;
+        exit(0);
+    }
+}
+
+QImage LidarSlamManager::createImage(const Map &m)
+{
+    int grid_width = m.width;
+    int grid_height = m.height;
+    QImage image(grid_width, grid_height, QImage::Format_RGB888);
+    for (int y = 0; y < grid_height; ++y)
+    {
+        for (int x = 0; x < grid_width; ++x)
+        {
+            double occupancyValue = m.data[y * grid_width + x];
+            bool isOccupied = (occupancyValue > 0.5);
+            QColor color = isOccupied ? Qt::black : Qt::white;
+            image.setPixelColor(x, y, color);
+        }
+    }
+    return image;
+}
+
+std::vector<QPoints> LidarSlamManager::mapToWorld(const Map &m)
 {
     std::vector<QPoints> xyz;
     xyz.resize(2);
@@ -229,18 +327,130 @@ std::vector<QPoints> LidarSlamManager::mapToWorld(Map &m)
     return xyz;
 }
 
-void LidarSlamManager::setSurveyFile(QString file_name)
-{
-    QString logFilePath = QString::fromStdString(package_path_) + "/log/";
-    if (!QDir(logFilePath).exists())
-        QDir().mkdir(logFilePath);
 
-    logFilePath += file_name; // "data.csv";
-    QString txt;
-    survey_file_ = new QFile(logFilePath);
-    survey_file_->open(QIODevice::WriteOnly | QIODevice::Text);
+void LidarSlamManager::loadData() {
+//    traj_x_.clear();
+//    traj_y_.clear();
+//    traj_z_.clear();
+//    radiations_.clear();
+//    pose_.position.clear();
+//    pose_.orientation.clear();
+//    map_.data.clear();
+//    xyz_.clear();
+//
+//    readCSV(path);
+//    QImage occupancyGrid(occupancy);
+//    std::vector<double> data;
+//    data.reserve(occupancyGrid.width() * occupancyGrid.height());
+//
+//    for (int y = 0; y < occupancyGrid.height(); ++y)
+//    {
+//        for (int x = 0; x < occupancyGrid.width(); ++x)
+//        {
+//            QRgb pixelValue = occupancyGrid.pixel(x, y);
+//            int red = qRed(pixelValue);
+//            int green = qGreen(pixelValue);
+//            int blue = qBlue(pixelValue);
+//            double occupancyValue = (red + green + blue) / (3.0 * 255.0);
+//            bool isOccupied = (occupancyValue > 0.5);
+//            double pixelData = isOccupied ? 0.0 : 1.0;
+//            data.push_back(pixelData);
+//        }
+//    }
+//
+//    Map m;
+//    m.width = occupancyGrid.width();
+//    m.height = occupancyGrid.height();
+//    m.resolution = resolution;
+//    m.position_x = position_x;
+//    m.position_y = position_y;
+//    m.data = data;
+//
+//    xyz_ = mapToWorld(m);
+//
+//    Pose actual_pose;
+//    actual_pose.position.push_back(0.0);
+//    actual_pose.position.push_back(0.0);
+//    actual_pose.position.push_back(0.0);
+//    actual_pose.orientation.push_back(0.0);
+//    actual_pose.orientation.push_back(0.0);
+//    actual_pose.orientation.push_back(0.0);
+//    actual_pose.orientation.push_back(0.0);
+//    pose_ = actual_pose;
+//
+//    if (occupancyGrid.isNull())
+//    {
+//        load_data_ = false;
+//    }
+//    else
+//        load_data_ = true;
+
 }
 
-void LidarSlamManager::savePointCloud(const std::string& filename) {
-    pcl::io::savePCDFileBinary(filename,*cld_ptr);
+void LidarSlamManager::readCSV(QString file_name)
+{
+//    QFile file(file_name);
+//    if (file.open(QIODevice::ReadOnly | QIODevice::Text))
+//    {
+//        QTextStream in(&file);
+//
+//        int line_count = 0;
+//        while (!in.atEnd())
+//        {
+//            QString line = in.readLine();
+//            QStringList fields = line.split(';');
+//
+//            if (line_count == 9)
+//            {
+//                for (const QString &field : fields)
+//                    if (field.contains("png", Qt::CaseInsensitive))
+//                    {
+//                        occupancy = field;
+//                    }
+//            }
+//            if (line_count == 10) // resolution
+//            {
+//                resolution = fields.at(1).toDouble();
+//            }
+//            if (line_count == 11)
+//            {
+//                QStringList parts = fields.at(1).split(' ');
+//                position_x = parts[0].toDouble();
+//                position_y = parts[1].toDouble();
+//            }
+//            if (line_count > 13 && line_count % 4 == 0)
+//            {
+//                traj_x_ << fields.at(0).toDouble();
+//                traj_y_ << fields.at(1).toDouble();
+//                traj_z_ << fields.at(2).toDouble();
+//                radiations_.push_back(fields.at(3).toDouble() / 1000);
+//            }
+//            // for (const QString &field : fields)
+//            // {
+//            //     // Process the field value
+//            //     if (field.contains("png", Qt::CaseInsensitive))
+//            //     {
+//            //         occupancy = field;
+//            //         // std::cout << field.toStdString() << std::endl;
+//            //     }
+//            //     // ...
+//            // }
+//            line_count++;
+//        }
+//        file.close();
+//        traj_2D = std::make_pair(traj_x_, traj_y_);
+//    }
+}
+
+void LidarSlamManager::clearData() {
+    traj_x_.clear();
+    traj_y_.clear();
+    traj_z_.clear();
+    colors_radiations_.clear();
+    radiations_.clear();
+    pose_.position.clear();
+    pose_.orientation.clear();
+    map_.data.clear();
+    xyz_.clear();
+    slam_data_.clear();
 }

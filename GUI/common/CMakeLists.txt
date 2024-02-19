@@ -49,9 +49,7 @@ set(SOURCES
     qtcustomplot/QCPColorGraph.cpp
     qtcustomplot/QCPColorGraph.h
 
-    listener.cpp
-    listener.h
-    qNode.cpp
+        qNode.cpp
     qNode.h 
 )	
 

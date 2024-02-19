@@ -47,8 +47,8 @@ private slots:
 private:
     void initializeHead();
     void initializeWindow();
-    void readCSV(QString file_name);
-    void writeCSV();
+
+
     QImage createImage(Map &m);
 
     FirstPage *m_firstPage;
@@ -56,8 +56,6 @@ private:
     LidarSlamManager *m_Manager;
     Ui::MainWindow *ui;
 
-    QString image_path;
-    QString occupancy;
     double resolution;
     double position_x, position_y;
 };

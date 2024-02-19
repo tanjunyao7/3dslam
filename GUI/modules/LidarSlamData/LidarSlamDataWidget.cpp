@@ -54,7 +54,7 @@ void LidarSlamDataWidget::update()
     }
     else if (!m_Manager->load_data_)
     {
-        if (m_Manager->can_start_)
+        if (m_Manager->started)
         {
             if (!update_table_)
             {

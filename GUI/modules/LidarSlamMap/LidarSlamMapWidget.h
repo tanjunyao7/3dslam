@@ -14,7 +14,6 @@
 
 #include <qtcustomplot/QCPColorGraph.h>
 
-#include "LidarSlamSensorWidget.h"
 #include <QMutex>
 #include <random>
 #include <QOpenGLContext>
@@ -36,7 +35,6 @@ public:
     ~LidarSlamMapWidget();
 
     // Q_SIGNALS:
-    QWidget *getUIWidget();
     QCustomPlot *getQCustomPlotWidget();
 
     QPixmap getPixmap();
@@ -44,13 +42,8 @@ public:
 public Q_SLOTS:
     void update();
 
-    //    void getIMUData(ImuMsg imu_data);
 
-    // private slots:
-    void on_tb_surface_toggled(bool checked);
-    void on_tb_laser_toggled(bool checked);
-    void on_tb_2dview_toggled(bool checked);
-    void on_tb_3dview_toggled(bool checked);
+
 
 private:
     Ui::LidarSlamMapWidget *ui;
@@ -73,13 +66,10 @@ private:
     QVector<double> traj_x_, traj_y_;
     std::vector<QPen> colors_radiations_M;
 
-    void plotLaserData(LaserScan &scan);
     double fRand(double fMin, double fMax);
 
     void plotWorldMapChart(Map &m);
-    void plot3DView(Map &m, std::vector<QPoints> &map_xyz);
     void plotWorldMap(const Pose &pose,const std::vector<QPoints> &map_xyz, std::pair<QVector<double>, QVector<double>> &traj);
-    Points projectLaser(LaserScan &scan);
 };
 
 #endif // LIDARSLAMMAPWIDGET_H

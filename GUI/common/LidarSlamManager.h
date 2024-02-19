@@ -9,16 +9,8 @@
 #include <LidarSlamModuleBase.h>
 #include <LidarSlamCommon.h>
 
-#include <listener.h>
-// #include <pcl_conversions/pcl_conversions.h>
-// #include <pcl_ros/transforms.h>
-// #include <pcl/point_types.h>
-// #include <pcl/point_cloud.h>
-// #include <pcl/io/pcd_io.h>
-// #include <pcl/io/ply_io.h>
-// #include <pcl/filters/passthrough.h>
-// #include <pcl/filters/voxel_grid.h>
-// #include <pcl/conversions.h>
+#include <qNode.h>
+
 
 typedef QList<LidarSlamModuleBase *> ModulesList;
 class LidarSlamManager : public QObject
@@ -35,17 +27,16 @@ public:
 
     const QStringList &activeModuleHeads() const;
     void setActiveModuleHeads(const QStringList &newActiveModuleHead);
-    void savePointCloud(const std::string& filename);
+    void setSurveyFile();
+    void saveResult();
+    void loadData();
 
-    void setSurveyFile(QString file_name);
-
-    std::string package_path_;
+    QString save_dir;
     QFile *survey_file_;
-    LaserScan scan_data_;
     Map map_;
     Pose pose_;
     User user_;
-    bool can_start_;
+    bool started;
     bool first_start_;
     QPixmap map_image_;
     QImage occupancy_image_;
@@ -69,11 +60,10 @@ public:
     pcl::PointCloud<pcl::PointXYZI>::Ptr cld_ptr;
     std::vector<std::pair<double,Eigen::Vector3d>> path_;
 
-    std::vector<QPoints> mapToWorld(Map &m);
+    std::vector<QPoints> mapToWorld(const Map &m);
 
 public Q_SLOTS:
     void startSurvey(bool can_start);
-    void setLaserData(LaserScan &scan);
     void setMapData(Map &map);
     void setPoseData(Pose &pose);
     void setRadiationData(int rad_data);
@@ -83,15 +73,16 @@ public Q_SLOTS:
     void updatePath(const std::vector<std::pair<double,Eigen::Vector3d>>& path);
 
 signals:
-    void busyChanged(bool);
-    void activeModuleHeadsChanged();
-    void start_survey(bool);
-    void rgb_update(const QPixmap image);
-    void depth_update(const QPixmap image);
-    void cloud_update(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud);
-    void path_update(const std::vector<std::pair<double,Eigen::Vector3d>>& path);
+    void enable_buttons(bool);
+    void saveCloudScreen(const QString& dir);
 
 private:
+    void clearData();
+    void writeCSV(const QString& dir,const QString& occupancy);
+    QImage createImage(const Map &m);
+
+    void readCSV(QString file_name);
+
     LidarSlamMainView *m_mainview;
     bool m_dataMenuVisible;
     ModulesList m_modules;
@@ -100,9 +91,7 @@ private:
     LidarSlamModuleBase *m_activeModule;
     QStringList m_activeModuleHeads;
 
-    Listener *ros_node_;
-    const int POSE_BUFFER_SIZE = 10;
-    const double OUTLIER_THRESHOLD = 0.05;
+    QNode *ros_node_;
 };
 
 #endif // LIDARSLAM_H

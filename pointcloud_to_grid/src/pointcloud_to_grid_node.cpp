@@ -67,7 +67,7 @@ public:
         for(const auto& v:voxels){
             int index = v.first;
 //            int occ = v.second.second-v.second.first>2.0;
-            signed char occ = 1;
+            int8_t occ = 1;
             occupancyGrid.data[index] = occ;
         }
     }

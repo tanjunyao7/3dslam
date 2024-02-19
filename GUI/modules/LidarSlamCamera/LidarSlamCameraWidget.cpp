@@ -1,15 +1,20 @@
 #include "LidarSlamCameraWidget.h"
 #include "ui_LidarSlamCameraWidget.h"
+#include <pcl/point_types.h>
+#include <pcl/common/centroid.h>
+#include <pcl/common/eigen.h>
+#include <pcl/common/transforms.h>
 
 LidarSlamCameraWidget::LidarSlamCameraWidget(LidarSlamManager *manager, QWidget *parent) : QWidget(parent),
                                                                                            m_Manager(manager),
-                                                                                           camera_view(false),
                                                                                            ui(new Ui::LidarSlamCameraWidget)
 {
     ui->setupUi(this);
     timer_camera_update_ = new QTimer();
     connect(timer_camera_update_, SIGNAL(timeout()), this, SLOT(updateCloud()), Qt::DirectConnection);
     timer_camera_update_->start(update_rate_);
+
+    connect(manager,SIGNAL(saveCloudScreen(const QString&)),this, SLOT(saveCloudScreenShot(const QString&)),Qt::DirectConnection);
 
     viewer_.reset(new pcl::visualization::PCLVisualizer("viewer", false));
     ui->qvtkWidget->SetRenderWindow(viewer_->getRenderWindow());
@@ -52,12 +57,66 @@ void LidarSlamCameraWidget::updateCloud()
         viewer_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, "path");
         viewer_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 0, 0, 1, "path");
         ui->qvtkWidget->update();
+
     }
 }
 
-void LidarSlamCameraWidget::refreshView()
-{
-    ui->qvtkWidget->update();
+void LidarSlamCameraWidget::saveCloudScreenShot(const QString &dir) {
+
+//    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZI>);
+//    for(int i=0;i<m_Manager->cld_ptr->size();i++)
+//        if(m_Manager->cld_ptr->points[i].z<ui->max_height_spinbox->value())
+//            cloud->push_back(m_Manager->cld_ptr->points[i]);
+//
+//    Eigen::Vector4f centroid;
+//    pcl::compute3DCentroid(*cloud, centroid);
+//
+//    // Step 2: Subtract the centroid
+//    pcl::demeanPointCloud(*cloud, centroid, *cloud);
+//
+//    // Step 3: Compute the covariance matrix
+//    Eigen::Matrix3f covariance_matrix;
+//    pcl::computeCovarianceMatrixNormalized(*cloud, centroid, covariance_matrix);
+//
+//    // Step 4: Compute eigenvalues and eigenvectors
+//    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> solver(covariance_matrix);
+//    Eigen::Matrix3f eigenvectors = solver.eigenvectors();
+//
+//    // Step 5: Create the transformation matrix
+//    Eigen::Matrix4f transform = Eigen::Matrix4f::Identity();
+//    transform.block<3, 3>(0, 0) = eigenvectors.transpose(); // Use the transpose as PCL uses the column-major order
+//
+//    // Step 6: Apply the transformation
+//    pcl::transformPointCloud(*cloud, *cloud, transform);
+//
+//    pcl::visualization::PointCloudColorHandlerGenericField<pcl::PointXYZI> intensity_distribution(cloud, "intensity");
+//    viewer.addPointCloud(cloud, intensity_distribution, "cloud");
+//
+//    float pointSize = ui->pointsize_spinbox->value();
+//    viewer.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, pointSize, "cloud");
+//
+//    viewer.initCameraParameters();
+
+    // Get bounding box dimensions
+    pcl::PointXYZI min_point, max_point;
+    pcl::getMinMax3D(*m_Manager->cld_ptr, min_point, max_point);
+
+    // Calculate optimal camera distance
+    double max_dim = std::max({max_point.x - min_point.x, max_point.y - min_point.y, max_point.z - min_point.z});
+
+    // Set camera position for the top view
+    viewer_->setCameraPosition(0, 0, 1.5*max_dim, 0, 0, 0, 0, 1, 0);
+
+    // Save top view screenshot
+//    viewer_->setSize(640, 480);
+    viewer_->saveScreenshot(dir.toStdString() + "top_view.png");
+
+    // Set camera position for the third-person view
+    viewer_->setCameraPosition(max_point.x, max_point.y, max_point.z, 0, 0, 0, -max_point.x, -max_point.y, max_point.z);
+
+    // Save third-person view screenshot
+//    viewer_->setSize(640, 480);
+    viewer_->saveScreenshot(dir.toStdString() +"third_person_view.png");
 }
 
 

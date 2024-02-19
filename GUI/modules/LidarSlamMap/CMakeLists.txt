@@ -33,10 +33,7 @@ set(SOURCES
     LidarSlamMapWidget.cpp
     LidarSlamMapWidget.h
     LidarSlamMapWidget.ui
-    LidarSlamSensorWidget.cpp
-    LidarSlamSensorWidget.h
-    LidarSlamSensorWidget.ui
-    )
+        )
 
 add_library(${PROJECT_NAME} ${SOURCES})
 

@@ -43,21 +43,7 @@ void LidarSlamUserWidget::setUserData()
 
 void LidarSlamUserWidget::on_pb_Start_clicked()
 {
-    m_Manager->load_data_ = false;
     setUserData();
-    QString file_name = "data_" + m_Manager->user_.client_id + "_" + m_Manager->user_.building_id + ".csv";
-    m_Manager->setSurveyFile(file_name);
-
-    m_Manager->traj_x_.clear();
-    m_Manager->traj_y_.clear();
-    m_Manager->traj_z_.clear();
-    m_Manager->colors_radiations_.clear();
-    m_Manager->radiations_.clear();
-    m_Manager->pose_.position.clear();
-    m_Manager->pose_.orientation.clear();
-    m_Manager->map_.data.clear();
-    m_Manager->xyz_.clear();
-
     Q_EMIT start_survey(true);
 }
 

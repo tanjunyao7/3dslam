@@ -7,9 +7,7 @@
 #include <LidarSlamManager.h>
 #include <LidarSlamModuleBase.h>
 #include <LidarSlamMapWidget.h>
-#include <LidarSlamSensorWidget.h>
 
-//#include <LidarSlamIMU.h>
 
 #include <QObject>
 #include <QThread>
@@ -35,12 +33,6 @@ public:
 
 private:
     LidarSlamMapWidget *m_LidarSlamMapWidget = nullptr;
-    LidarSlamSensorWidget *m_LidarSlamSensorWidget = nullptr;
-
-    QThread *map_widget_;
-
-    QTimer *timer_map_update_;
-
     LaserScan scan;
     Map map;
 };
