@@ -14,4 +14,5 @@
    <!-- <include file="$(find livox_ros_driver2)/launch_ROS1/msg_MID360.launch"/>  -->
 
     <node pkg="pointcloud_to_grid" type="pointcloud_to_grid_node" name="pointcloud_to_grid_node"/>
+    <node pkg="realsense_bridge" type="live" name="realsense"/>
 </launch>

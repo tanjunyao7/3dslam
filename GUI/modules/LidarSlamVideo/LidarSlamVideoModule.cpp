@@ -19,9 +19,6 @@ void LidarSlamVideoModule::showModuleUI(LidarSlamMainView *view, bool visible)
     }
     view->setMainWidget(m_LidarSlamVideoWidget);
 
-    view->setLeftWidget(nullptr);
-    view->setLeftWidgetVisible(false);
-    view->setRightWidget(nullptr);
 }
 
 bool LidarSlamVideoModule::reqPreviousModule()
