@@ -10,7 +10,7 @@ public:
     void setData(const QVector<double> &keys, const QVector<double> &values, const QVector<QColor> &colors);
 
 protected:
-    virtual void drawScatterPlot(QCPPainter *painter, const QVector<QPointF> &points, const QCPScatterStyle &style) const;
+    virtual void drawScatterPlot(QCPPainter *painter, const QVector<QPointF> &points, const QCPScatterStyle &style) const override;
 
 private:
     QVector<QColor> colors_;

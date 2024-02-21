@@ -21,7 +21,7 @@ LidarSlamCameraWidget::LidarSlamCameraWidget(LidarSlamManager *manager, QWidget 
     viewer_->setupInteractor(ui->qvtkWidget->GetInteractor(), ui->qvtkWidget->GetRenderWindow());
     ui->qvtkWidget->update();
 
-    viewer_->setBackgroundColor(0.7, 0.7, 0.7);
+    viewer_->setBackgroundColor(0, 0, 0);
     viewer_->resetCamera();
 }
 
@@ -62,40 +62,6 @@ void LidarSlamCameraWidget::updateCloud()
 }
 
 void LidarSlamCameraWidget::saveCloudScreenShot(const QString &dir) {
-
-//    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZI>);
-//    for(int i=0;i<m_Manager->cld_ptr->size();i++)
-//        if(m_Manager->cld_ptr->points[i].z<ui->max_height_spinbox->value())
-//            cloud->push_back(m_Manager->cld_ptr->points[i]);
-//
-//    Eigen::Vector4f centroid;
-//    pcl::compute3DCentroid(*cloud, centroid);
-//
-//    // Step 2: Subtract the centroid
-//    pcl::demeanPointCloud(*cloud, centroid, *cloud);
-//
-//    // Step 3: Compute the covariance matrix
-//    Eigen::Matrix3f covariance_matrix;
-//    pcl::computeCovarianceMatrixNormalized(*cloud, centroid, covariance_matrix);
-//
-//    // Step 4: Compute eigenvalues and eigenvectors
-//    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> solver(covariance_matrix);
-//    Eigen::Matrix3f eigenvectors = solver.eigenvectors();
-//
-//    // Step 5: Create the transformation matrix
-//    Eigen::Matrix4f transform = Eigen::Matrix4f::Identity();
-//    transform.block<3, 3>(0, 0) = eigenvectors.transpose(); // Use the transpose as PCL uses the column-major order
-//
-//    // Step 6: Apply the transformation
-//    pcl::transformPointCloud(*cloud, *cloud, transform);
-//
-//    pcl::visualization::PointCloudColorHandlerGenericField<pcl::PointXYZI> intensity_distribution(cloud, "intensity");
-//    viewer.addPointCloud(cloud, intensity_distribution, "cloud");
-//
-//    float pointSize = ui->pointsize_spinbox->value();
-//    viewer.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, pointSize, "cloud");
-//
-//    viewer.initCameraParameters();
 
     // Get bounding box dimensions
     pcl::PointXYZI min_point, max_point;

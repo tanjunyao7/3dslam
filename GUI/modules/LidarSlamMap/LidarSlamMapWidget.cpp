@@ -56,35 +56,39 @@ QCustomPlot *LidarSlamMapWidget::getQCustomPlotWidget()
 void LidarSlamMapWidget::plotWorldMap(const Pose &pose,const std::vector<QPoints> &map_xyz, std::pair<QVector<double>, QVector<double>> &traj)
 {
     QCustomPlot* customPlot = ui->customPlot;
+    customPlot->xAxis->setScaleRatio(customPlot->yAxis);
     customPlot->clearGraphs();
-    customPlot->addGraph();
-    customPlot->addGraph();
-    customPlot->addGraph();
-
+    QCPGraph * graph;
+    
     QVector<double> x_pix, y_pix;
 
     if ((!pose.position.empty()) && (!map_xyz.empty()))
     {
         x_pix << pose.position.at(0);
         y_pix << pose.position.at(1);
-        std::cout<<"map size: "<<map_xyz[0].x.size()<<" "<<map_xyz[0].y.size()<<std::endl;
 
-        customPlot->graph(0)->setPen(QPen(Qt::black));
-        customPlot->graph(0)->setLineStyle(QCPGraph::lsNone);
-        customPlot->graph(0)->setScatterStyle(QCPScatterStyle::ssDisc);
-        customPlot->graph(0)->setData(map_xyz.at(0).x, map_xyz.at(0).y);
+        graph = customPlot->addGraph();
+        graph->setPen(QPen(Qt::black));
+        graph->setLineStyle(QCPGraph::lsNone);
+        graph->setScatterStyle(QCPScatterStyle::ssDisc);
+        graph->setData(map_xyz.at(0).x, map_xyz.at(0).y);
 
-        customPlot->graph(1)->setPen(QPen(QColor(255, 0, 255)));
-        customPlot->graph(1)->setLineStyle(QCPGraph::lsNone);
-        customPlot->graph(1)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc, 10));
-        customPlot->graph(1)->setData(x_pix, y_pix);
-
-        QCPColorGraph *graph = new QCPColorGraph(customPlot->xAxis, customPlot->yAxis);
-        graph->setData(traj.first, traj.second, m_Manager->colors_radiations_);
+        graph = customPlot->addGraph();
+        graph->setPen(QPen(QColor(255, 0, 255)));
         graph->setLineStyle(QCPGraph::lsNone);
         graph->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc, 10));
+        graph->setData(x_pix, y_pix);
+
+        for(int i=0;i<m_Manager->colors_radiations_.size();i++){
+            graph = customPlot->addGraph();
+            graph->setPen(QPen(m_Manager->colors_radiations_[i]));
+            graph->setLineStyle(QCPGraph::lsNone);
+            graph->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc, 10));
+            graph->addData(traj.first[i], traj.second[i]);
+        }
 
         customPlot->replot(QCustomPlot::rpQueuedReplot); // refresh priority QCustomPlot::rpQueuedReplot)
+
 
     }
 }
