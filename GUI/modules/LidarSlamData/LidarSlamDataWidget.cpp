@@ -1,5 +1,9 @@
 #include "LidarSlamDataWidget.h"
 #include "ui_LidarSlamDataWidget.h"
+#include <iostream>
+#include <iomanip>
+#include <chrono>
+#include <ctime>
 
 LidarSlamDataWidget::LidarSlamDataWidget(LidarSlamManager *manager, QWidget *parent) : QWidget(parent),
                                                                                        m_Manager(manager),
@@ -87,9 +91,20 @@ void LidarSlamDataWidget::update()
                 int column_rad = 3;
                 ui->tableWidget->setItem(row, column_rad, rad_level);
 
+                std::chrono::system_clock::time_point currentTime = std::chrono::system_clock::now();
+                // Convert to Pacific Standard Time (PST)
+                std::time_t timeInPST = std::chrono::system_clock::to_time_t(currentTime - std::chrono::hours(8)); // PST is UTC-8
+                // Convert to local time
+                std::tm* localTime = std::localtime(&timeInPST);
+                // Format the current date and time in PST
+                std::stringstream ss;
+                ss << std::put_time(localTime, "%m/%d/%Y %H:%M");
+
                 QString curr_Data = QString::number(m_Manager->pose_.position.at(0)) + ";" +
                                     QString::number(m_Manager->pose_.position.at(1)) + ";" +
-                                    QString::number(m_Manager->pose_.position.at(2)) + ";" + QString::number(m_Manager->radiation_level_ / 1000);
+                                    QString::number(m_Manager->pose_.position.at(2)) + ";" +
+                                    QString::number(m_Manager->radiation_level_ / 1000) +";" +
+                                    QString::fromStdString(ss.str())+";";
 
                 m_Manager->slam_data_.push_back(curr_Data);
                 //   writeCSV(QString::number(m_Manager->pose_.position.at(0)), QString::number(m_Manager->pose_.position.at(1)),

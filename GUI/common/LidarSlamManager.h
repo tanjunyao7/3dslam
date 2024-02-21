@@ -92,6 +92,7 @@ private:
     QStringList m_activeModuleHeads;
 
     QNode *ros_node_;
+    QString logFilePath_;
 };
 
 #endif // LIDARSLAM_H

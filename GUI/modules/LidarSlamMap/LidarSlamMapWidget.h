@@ -66,6 +66,8 @@ private:
     QVector<double> traj_x_, traj_y_;
     std::vector<QPen> colors_radiations_M;
 
+    QVector<QColor> colors;
+
     double fRand(double fMin, double fMax);
 
     void plotWorldMapChart(Map &m);
