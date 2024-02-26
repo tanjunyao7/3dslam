@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <launch>
-    <!-- <node pkg="LidarSLAM" type="ludlum2221.py" name="ludllum" output="screen" /> -->
+    <node pkg="LidarSLAM" type="ludlum2221.py" name="ludllum" output="screen" />
     <node pkg="LidarSLAM" type="LidarSLAM" name="Lidar_GUI_SLAM" output="screen">
         <param name="camera_topic" type="string" value="rgb"/>
         <param name="cloud_topic" type="string" value="frame_cloud"/>
@@ -11,7 +11,7 @@
 
     <include file="$(find aloam_velodyne)/launch/fastlio_velodyne_VLP_16.launch"/>
     
-   <!-- <include file="$(find livox_ros_driver2)/launch_ROS1/msg_MID360.launch"/>  -->
+   <include file="$(find livox_ros_driver2)/launch_ROS1/msg_MID360.launch"/> 
 
     <node pkg="pointcloud_to_grid" type="pointcloud_to_grid_node" name="pointcloud_to_grid_node"/>
     <node pkg="realsense_bridge" type="live" name="realsense"/>
